@@ -22,11 +22,13 @@ rensei auth mcp-headers >/dev/null 2>&1 && echo "authenticated" || echo "not aut
 The plugin's `.mcp.json` "rensei" server uses `rensei auth mcp-headers` as its
 `headersHelper` — it re-runs automatically on every connection and on a
 401/403, so once authenticated here you should not need to touch it again.
-If the CLI genuinely cannot be installed on this machine, `plugin.json`
-declares an `api_token` fallback (`sensitive: true`) — set it via
-`/plugin` configuration and switch the "rensei" server entry in `.mcp.json`
-to `"headers": {"Authorization": "Bearer ${user_config.api_token}"}` instead
-of `headersHelper`. Prefer the CLI path; the token fallback has no refresh.
+
+If the CLI genuinely cannot be installed on this machine, export a raw
+platform token as `RENSEI_API_TOKEN` (in your shell profile, or under `"env"`
+in `settings.json`) — the `headersHelper` script uses it whenever the CLI is
+missing or has no active auth context. Do not edit the plugin's `.mcp.json`
+to do this: it lives in the plugin cache and is overwritten on every update.
+Prefer the CLI path regardless; a static token does not refresh.
 
 ## 2. Know which fallback rung you're on
 
@@ -49,9 +51,15 @@ consolation prize.
 
 ## 3. Verify the tool surface
 
-Ask the model to call `a2a_list_agents` (no args). An empty or populated list
-back means the "rensei" server is reachable and authenticated. If it errors,
-re-run step 1.
+Call `mcp__plugin_rensei_rensei__a2a_list_agents` (no args). An empty or
+populated list back means the "rensei" server is reachable and authenticated.
+If it errors, re-run step 1.
+
+Every tool this plugin provides is namespaced — use the full names:
+`mcp__plugin_rensei_rensei__<tool>` for the HTTP server below, and
+`mcp__plugin_rensei_rensei-events__<tool>` for `ack_event`/`mark_handled` on
+the stdio channel server. A bare `a2a_inbox` or `ack_event` is not a tool
+name and will not resolve.
 
 The typed spawn/steer/observe tools (`dispatch_child`, `steer_child`,
 `watch_session`, `replay_session`, `cancel_session`, `get_session_receipt`)
