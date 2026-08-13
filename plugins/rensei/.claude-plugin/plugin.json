@@ -1,6 +1,6 @@
 {
   "name": "rensei",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Spawn, steer, and hear back from Rensei platform sub-agents from Claude Code.",
   "author": {
     "name": "Rensei Inc",
