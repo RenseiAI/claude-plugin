@@ -1,5 +1,6 @@
 {
   "name": "rensei",
+  "description": "Rensei Inc plugins for Claude Code: the rensei swarm coordinator (spawn, steer, and hear back from platform sub-agents).",
   "owner": {
     "name": "Rensei Inc",
     "url": "https://rensei.ai"
