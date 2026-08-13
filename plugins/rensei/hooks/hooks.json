@@ -5,7 +5,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/rensei-session-preflight.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/rensei-session-preflight.sh",
+            "timeout": 10
           }
         ]
       }
@@ -15,7 +16,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/rensei-stop-drain-check.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/rensei-stop-drain-check.sh",
+            "timeout": 15
           }
         ]
       }
