@@ -2,7 +2,7 @@
   {
     "name": "swarm-inbox",
     "command": "${CLAUDE_PLUGIN_ROOT}/bin/rensei-inbox-follow.sh",
-    "when": "always",
-    "description": "Fallback ladder rung 2: polls for new swarm events (child completed/blocked/needs-input) and prints one line per event when the channel rung (rung 1) doesn't appear to be delivering. No --channels flag required."
+    "when": "on-skill-invoke:rensei:swarm",
+    "description": "Fallback ladder rung 2: polls for new swarm events (child completed/blocked/needs-input). Armed on first rensei:swarm invocation \u2014 an idle session with no swarm activity runs no poller and burns no tokens."
   }
 ]
