@@ -1,0 +1,16 @@
+{
+  "name": "rensei",
+  "owner": {
+    "name": "Rensei Inc",
+    "url": "https://rensei.ai"
+  },
+  "plugins": [
+    {
+      "name": "rensei",
+      "source": "./plugins/rensei",
+      "description": "Rensei swarm coordinator: spawn, steer, and hear back from platform sub-agents",
+      "version": "0.1.0",
+      "category": "productivity"
+    }
+  ]
+}

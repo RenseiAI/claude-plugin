@@ -1,0 +1,19 @@
+{
+  "name": "rensei",
+  "version": "0.1.0",
+  "description": "Spawn, steer, and hear back from Rensei platform sub-agents from Claude Code.",
+  "author": {
+    "name": "Rensei Inc",
+    "url": "https://rensei.ai"
+  },
+  "homepage": "https://rensei.ai",
+  "keywords": ["rensei", "swarm", "agents", "mcp", "channel", "coordinator"],
+  "userConfig": {
+    "api_token": {
+      "type": "string",
+      "description": "Rensei platform API token (rsk_...). Only needed as a fallback when the rensei CLI is not installed/authenticated on this machine — prefer `rensei auth add --user` and the default headersHelper-based server instead. See the setup skill and README for how to switch to this fallback.",
+      "sensitive": true,
+      "required": false
+    }
+  }
+}
