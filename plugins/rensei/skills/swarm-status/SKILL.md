@@ -14,6 +14,11 @@ the notification stream.
 
 ## Building the roll-up
 
+Tool names below are shortened for reading — call them with their full
+prefix: `mcp__plugin_rensei_rensei__<tool>` for everything on the HTTP
+server, and `mcp__plugin_rensei_rensei-events__<tool>` for
+`ack_event`/`mark_handled`.
+
 1. `a2a_list_agents` — every peer addressable in this project, with
    `presence` (durable delivery works regardless of whether a peer is
    currently running; presence just tells you whether it's live right now).

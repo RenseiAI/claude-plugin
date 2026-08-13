@@ -11,6 +11,10 @@ tools, this skill is the narrower path through them.
 
 ## Dispatch
 
+Tool names here are shortened for reading — call them with their full prefix,
+`mcp__plugin_rensei_rensei__<tool>` (so `dispatch_child` is
+`mcp__plugin_rensei_rensei__dispatch_child`).
+
 Call `dispatch_child` with:
 
 - a clear, self-contained goal (the child has no memory of this
