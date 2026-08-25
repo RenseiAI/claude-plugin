@@ -3,10 +3,9 @@
 #
 # Deliberate substitution from the build spec: spec §4 describes this hook as
 # registering the coordinator "w/ platform" on session start. No such
-# registration endpoint exists — a2a_send_message/a2a_inbox (verified real,
-# platform/src/lib/mcp/tool-names.ts) are the only confirmed presence
+# registration endpoint exists - a2a_send_message/a2a_inbox are the presence
 # primitives, and they're durable-mailbox tools the model calls, not a
-# hook-level handshake. Inventing a registration call against a nonexistent
+# primitives available to the model, not a hook-level handshake. Inventing a registration call against a nonexistent
 # endpoint would be worse than not having one, so this hook instead does the
 # one thing that IS real and checkable from a shell script: confirm the
 # rensei CLI is present and authenticated, and say so plainly when it isn't,
@@ -25,18 +24,11 @@
 # short timeout so a pathological install cannot stall session startup.
 set -euo pipefail
 
-if ! command -v rensei >/dev/null 2>&1; then
-  echo "Rensei plugin: the \"rensei\" CLI is not on PATH. Spawn/steer tools and the"
-  echo "channel/monitor fallbacks will not work until it is installed. Run the"
-  echo "/rensei:setup skill, or: brew install RenseiAI/tap/rensei && rensei auth add --user"
-  echo "(If rensei IS installed, Claude Code may have been launched without your"
-  echo "shell profile — see the plugin README's \"rensei not found\" troubleshooting.)"
-  exit 0 # advisory only — never blocks session start.
-fi
+LAUNCHER="${1:?Rensei launcher path is required}"
 
-if ! rensei auth mcp-headers >/dev/null 2>&1; then
-  echo "Rensei plugin: the rensei CLI is installed but not authenticated. Run"
-  echo "/rensei:setup or 'rensei auth add --user' to enable the swarm tools."
+if ! "$LAUNCHER" claude profile-check >/dev/null 2>&1; then
+  echo "Rensei plugin: the pinned local integration is unavailable. Run"
+  echo "'rensei claude install --scope user' from a terminal, then restart Claude Code."
 fi
 
 exit 0

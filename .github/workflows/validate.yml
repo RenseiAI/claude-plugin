@@ -1,0 +1,37 @@
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Install Claude Code validator
+        run: npm install --global @anthropic-ai/claude-code@2.1.223
+      - name: Validate marketplace and plugin
+        run: |
+          claude plugin validate .
+          claude plugin validate plugins/rensei
+      - name: Check shell entrypoints
+        run: bash -n plugins/rensei/bin/*.sh
+      - name: Check release version and auth boundary
+        run: |
+          test "$(jq -r '.plugins[] | select(.name == "rensei") | .version' .claude-plugin/marketplace.json)" = "$(jq -r .version plugins/rensei/.claude-plugin/plugin.json)"
+          ! grep -R -E 'RENSEI_API_TOKEN|RENSEI_MCP_URL|rensei auth mcp-headers|"command": "rensei"' plugins/rensei
+      - name: Install through the native Claude marketplace CLI
+        run: |
+          export HOME="$(mktemp -d)"
+          claude plugin marketplace add "$GITHUB_WORKSPACE" --scope user
+          claude plugin install rensei@rensei --scope user --config mcp_url=https://app.rensei.ai/api/cli/mcp
+          claude plugin list --json | jq -e '.[] | select(.id == "rensei@rensei" and .version == "0.2.0" and .scope == "user" and .enabled == true)'
+          claude plugin details rensei@rensei | grep -F 'MCP servers (2)'

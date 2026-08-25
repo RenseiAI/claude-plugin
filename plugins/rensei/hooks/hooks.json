@@ -6,6 +6,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/bin/rensei-session-preflight.sh",
+            "args": ["${CLAUDE_PLUGIN_DATA}/rensei"],
             "timeout": 10
           }
         ]
@@ -17,6 +18,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/bin/rensei-stop-drain-check.sh",
+            "args": ["${CLAUDE_PLUGIN_DATA}/rensei"],
             "timeout": 15
           }
         ]

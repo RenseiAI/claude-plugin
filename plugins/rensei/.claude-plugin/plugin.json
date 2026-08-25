@@ -1,6 +1,6 @@
 {
   "name": "rensei",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Spawn, steer, and hear back from Rensei platform sub-agents from Claude Code.",
   "author": {
     "name": "Rensei Inc",
@@ -14,5 +14,14 @@
     "mcp",
     "channel",
     "coordinator"
-  ]
+  ],
+  "userConfig": {
+    "mcp_url": {
+      "type": "string",
+      "title": "Rensei MCP URL",
+      "description": "Pinned Rensei platform MCP endpoint written by rensei claude install.",
+      "required": true,
+      "default": "https://app.rensei.ai/api/cli/mcp"
+    }
+  }
 }
