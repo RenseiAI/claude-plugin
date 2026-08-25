@@ -8,7 +8,7 @@
 # Claude reads it before actually ending the turn — the documented Claude
 # Code Stop-hook contract (block-with-reason via a non-zero exit + stderr).
 #
-# It reuses "rensei channel poll-inbox" (same cursor file the swarm-inbox
+# It reuses the pinned "rensei claude channel poll-inbox" (same cursor file the swarm-inbox
 # monitor uses, in ~/.rensei/channel-inbox-cursor.json) rather than a
 # separate probe — whichever rung's poll fires first advances the shared
 # cursor, so this hook and the monitor never double-report the same event.
@@ -32,12 +32,23 @@
 # Deliberate substitution from the build spec: spec §6 names a proposed
 # "check_swarm_inbox" tool on the "rensei" HTTP MCP server as the follow-up
 # the reason should point at. That tool does not exist and adding one is
-# platform-side, out of REN-2352's scope ("reuses P2.2's existing tools,
-# doesn't reimplement them"). The REAL, already-shipped equivalent is
+# server-side and outside this plugin's scope. The available equivalent is
 # a2a_inbox on the same server — this hook's reason names that instead.
 set -euo pipefail
 
+LAUNCHER="${1:?Rensei launcher path is required}"
+
 PROBE_TIMEOUT_SECONDS="${RENSEI_STOP_PROBE_TIMEOUT:-8}"
+case "$PROBE_TIMEOUT_SECONDS" in
+  '' | *[!0-9]*)
+    echo "Rensei Stop hook: RENSEI_STOP_PROBE_TIMEOUT must be a decimal integer from 1 to 60." >&2
+    exit 0
+    ;;
+esac
+if [ "$PROBE_TIMEOUT_SECONDS" -lt 1 ] || [ "$PROBE_TIMEOUT_SECONDS" -gt 60 ]; then
+  echo "Rensei Stop hook: RENSEI_STOP_PROBE_TIMEOUT must be from 1 to 60." >&2
+  exit 0
+fi
 
 # --- Rule 1: never block twice in the same stop sequence. -------------------
 # Read the hook payload from stdin. No jq dependency: a substring match on the
@@ -55,7 +66,7 @@ case "$INPUT" in
     ;;
 esac
 
-if ! command -v rensei >/dev/null 2>&1; then
+if ! "$LAUNCHER" claude profile-check >/dev/null 2>&1; then
   exit 0 # nothing to probe; do not block a session that lacks the CLI.
 fi
 
@@ -66,7 +77,7 @@ TMP_OUT="$(mktemp -t rensei-stop-drain.XXXXXX)"
 cleanup() { rm -f "$TMP_OUT"; }
 trap cleanup EXIT
 
-rensei channel poll-inbox >"$TMP_OUT" 2>/dev/null &
+"$LAUNCHER" claude channel poll-inbox >"$TMP_OUT" 2>/dev/null &
 PROBE_PID=$!
 
 waited=0

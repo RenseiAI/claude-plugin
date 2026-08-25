@@ -12,23 +12,16 @@ not a domain error from the tool itself).
 ## 1. Confirm the CLI
 
 ```bash
-command -v rensei || echo "not installed"
-rensei auth mcp-headers >/dev/null 2>&1 && echo "authenticated" || echo "not authenticated"
+rensei claude status
 ```
 
 - Not installed: `brew install RenseiAI/tap/rensei`, then `rensei auth add --user`.
-- Not authenticated: `rensei auth add --user` (opens a browser device-auth flow).
+- Not ready: select the intended org/project and run `rensei claude install --scope user`.
 
-The plugin's `.mcp.json` "rensei" server uses `rensei auth mcp-headers` as its
-`headersHelper` — it re-runs automatically on every connection and on a
-401/403, so once authenticated here you should not need to touch it again.
-
-If the CLI genuinely cannot be installed on this machine, export a raw
-platform token as `RENSEI_API_TOKEN` (in your shell profile, or under `"env"`
-in `settings.json`) — the `headersHelper` script uses it whenever the CLI is
-missing or has no active auth context. Do not edit the plugin's `.mcp.json`
-to do this: it lives in the plugin cache and is overwritten on every update.
-Prefer the CLI path regardless; a static token does not refresh.
+The plugin's `.mcp.json` server uses the metadata-only profile created by the
+installer. The helper re-runs on every connection/reconnect, refreshes the
+pinned user credential, validates the platform origin, and sends the pinned
+org/project headers. Active CLI context changes do not rescope this session.
 
 ## 2. Know which fallback rung you're on
 

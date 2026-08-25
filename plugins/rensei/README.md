@@ -1,17 +1,14 @@
 # Rensei Claude Code plugin
 
 Spawn, steer, and hear back from Rensei-hosted sub-agents from inside a
-Claude Code session — the swarm coordinator front-end for Claude
-(REN-2352, design `06-design.md` §3.3). Built against the verified channel
-and plugin contract in `runs/2026-08-12-coordinator-swarm/research/
-ren-2351-claude-plugin-spec.md`.
+Claude Code session - the swarm coordinator front-end for Claude.
 
 ## What's in here
 
 | Piece | What it does |
 | --- | --- |
-| `rensei` MCP server (`.mcp.json`) | Remote HTTP MCP over `/api/cli/mcp`: spawn/steer/observe tools (`dispatch_child`, `steer_child`, `watch_session`, `replay_session`, `cancel_session`, `get_session_receipt`) plus the durable A2A mailbox (`a2a_list_agents`, `a2a_send_message`, `a2a_inbox`). Auth via `headersHelper` → `rensei auth mcp-headers`, re-minted fresh on every connection and on 401/403. |
-| `rensei-events` MCP server (`.mcp.json`) | The stdio **channel**: `rensei channel serve` — pushes swarm events (child completed/blocked/needs-input) into your live session, relays tool-approval requests, and exposes `ack_event`/`mark_handled`. |
+| `rensei` MCP server (`.mcp.json`) | Remote HTTP MCP over `/api/cli/mcp`: spawn/steer/observe tools plus the durable A2A mailbox. Auth and org/project scope come from the profile created by `rensei claude install`; the bearer is refreshed on every connection or reconnect. |
+| `rensei-events` MCP server (`.mcp.json`) | The stdio **channel**: `rensei claude channel serve` through the generated launcher, so it uses the same pinned identity and scope as HTTP MCP. |
 | Monitor (`monitors/monitors.json`) | `rensei-inbox-follow.sh` — flag-free fallback push: a background loop that prints one line per new event. |
 | Hooks (`hooks/hooks.json`) | `SessionStart` preflight (CLI installed + authenticated); `Stop` drain-check (blocks end-of-turn with a reason if events are pending). |
 | Skills (`skills/`) | `/rensei:setup`, `/rensei:swarm`, `/rensei:delegate`, `/rensei:swarm-status` — usage patterns for the tool vocabulary above. |
@@ -19,29 +16,29 @@ ren-2351-claude-plugin-spec.md`.
 
 ## Install
 
-Prerequisite: the `rensei` CLI, installed and authenticated.
+Install and authenticate the `rensei` CLI, choose the org/project Claude should
+use, then let Rensei install the plugin:
 
 ```bash
 brew install RenseiAI/tap/rensei
 rensei auth add --user
+rensei org activate my-org
+rensei project switch my-project # optional
+rensei claude install --scope user
 ```
 
-Then, in Claude Code:
+The command uses Claude Code's native marketplace/install commands, writes no
+credential into Claude settings, and creates a stable local launcher so GUI
+sessions do not depend on your shell `PATH`. Restart Claude Code (or run
+`/reload-plugins`) and use `/rensei:setup` to verify the tool surface.
 
+Useful lifecycle commands:
+
+```bash
+rensei claude status
+rensei claude update
+rensei claude uninstall
 ```
-/plugin marketplace add RenseiAI/claude-plugin
-/plugin install rensei@rensei
-```
-
-Choose **user** scope when prompted. If the install summary asks for it, run
-`/reload-plugins`. Run `/rensei:setup` afterward to confirm the CLI and MCP
-tool surface are both reachable.
-
-> **`RenseiAI/claude-plugin` is a private repo.** `/plugin marketplace add`
-> clones it with your local git credentials, so you need read access to that
-> repo and a working `git`/`gh` credential for GitHub before the command
-> above will succeed. If it fails with a clone/permission error, that is what
-> it means — ask for repo access rather than re-running it.
 
 To work on the plugin itself, point Claude Code at a checkout directly
 instead of installing from the marketplace:
@@ -102,9 +99,9 @@ the same event can surface twice. That is deliberate. Every event carries a
 so a duplicate costs nothing — whereas suppressing a rung costs a delivery
 path.
 
-`rensei channel serve` does write a heartbeat file after each poll tick, and
+The pinned channel server does write a heartbeat file after each poll tick, and
 the monitor *can* skip its own poll while that heartbeat is fresh — but this
-is **off by default**, because Claude Code starts `rensei channel serve` as
+is **off by default**, because Claude Code starts the pinned channel server as
 the `rensei-events` MCP server on every session whether or not `--channels`
 was passed. On a default install the heartbeat is therefore fresh while rung
 1 delivers nothing, and honoring it would silently disable rung 2 as well.
@@ -122,8 +119,8 @@ deployed platform. What is NOT verified end-to-end against a live platform:
 
 - Whether the typed `dispatch_child`/`steer_child`/`watch_session`/
   `replay_session`/`cancel_session`/`get_session_receipt` tools are live on
-  your org's `/api/cli/mcp` yet — they require the platform-side capability
-  handshake this plugin depends on but does not implement (P2.2/P4.1). If a
+  your org's `/api/cli/mcp` yet - they require a server-side capability
+  handshake this plugin depends on but does not implement. If a
   call to one of them fails with a connection/handshake error rather than a
   normal tool error, check with your platform admin whether that rollout has
   landed; `a2a_list_agents`/`a2a_send_message`/`a2a_inbox` do not depend on it
@@ -136,40 +133,25 @@ deployed platform. What is NOT verified end-to-end against a live platform:
 
 ## Authentication
 
-The `rensei` MCP server authenticates through its `headersHelper`, which
-shells out to `rensei auth mcp-headers` — a fresh token per connection, and
-again on a 401/403. `rensei auth add --user` is the whole setup.
+The `headersHelper` calls `rensei claude mcp-headers` through the generated
+launcher. Before reading the secret store it verifies that Claude's actual MCP
+URL matches the installed platform origin and that the pinned auth context is
+still a user login. It then emits Authorization, `X-Rensei-Org`, and optional
+`X-Rensei-Project` together. The channel, monitor, and Stop hook load that same
+profile. There is no ambient active-context or static-token fallback.
 
-If the CLI cannot be installed on a machine, export a raw platform token
-instead and the helper will use it whenever the CLI is missing or has no
-active auth context:
-
-```bash
-export RENSEI_API_TOKEN=rsk_...
-```
-
-(or set it under `"env"` in `settings.json`). A static token does not
-refresh, so prefer the CLI path. Note there is deliberately **no**
-`/plugin configure` option for this: Claude Code refuses `${user_config.*}`
-inside a `headersHelper` because the value would be passed to a shell, so an
-env var is the only mechanical path — a userConfig entry would have been a
-knob wired to nothing. Do not hand-edit the plugin's `.mcp.json` either; it
-lives in the plugin cache and is overwritten on every update.
+To move Claude to another org, project, custom platform endpoint, or user
+identity, select it in the Rensei CLI and rerun `rensei claude install
+--scope user`.
 
 ## Troubleshooting
 
-- **`rensei` not found — but it IS installed**: Claude Code inherits the
-  environment it was launched from. Launched from a GUI (Dock, Spotlight) on
-  macOS it may not see `/opt/homebrew/bin`, so a Homebrew-installed `rensei`
-  is invisible to the `rensei-events` server, the hooks, and the monitor.
-  Launch `claude` from a terminal, or add the directory to `PATH` in
-  `settings.json` under `"env"`.
-- **`rensei` genuinely not installed**: the `SessionStart` hook says so in
-  session context and the monitor says so as a notification — read either.
-- **MCP tools connect but every call errors**: run `rensei auth mcp-headers`
-  by hand; a non-zero exit means you're not authenticated (`rensei auth add
-  --user`). A `403` mentioning `Missing required scope` is platform-side, not
-  a local misconfiguration.
+- **Setup, auth, or launcher failure**: run `rensei claude status`, then rerun
+  `rensei claude install --scope user` to repair the profile and native plugin
+  registration. The generated launcher avoids GUI `PATH` differences.
+- **MCP tools connect but every call errors**: a `403` mentioning a missing
+  capability is org-side. Other connection/auth problems should appear in
+  `rensei claude status`.
 - **No channel push, ever**: expected unless you did one of the two allowlist
   things above. Confirm the monitor is running instead (`/status` should list
   the "swarm-inbox" monitor) — that's rung 2, and it's what most installs run

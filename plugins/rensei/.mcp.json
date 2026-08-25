@@ -2,13 +2,13 @@
   "mcpServers": {
     "rensei": {
       "type": "http",
-      "url": "${RENSEI_MCP_URL:-https://app.rensei.ai/api/cli/mcp}",
-      "headersHelper": "${CLAUDE_PLUGIN_ROOT}/bin/rensei-mcp-headers.sh"
+      "url": "${user_config.mcp_url}",
+      "headersHelper": "\"${CLAUDE_PLUGIN_ROOT}/bin/rensei-mcp-headers.sh\" \"${CLAUDE_PLUGIN_DATA}/rensei\""
     },
     "rensei-events": {
       "type": "stdio",
-      "command": "rensei",
-      "args": ["channel", "serve"]
+      "command": "${CLAUDE_PLUGIN_DATA}/rensei",
+      "args": ["claude", "channel", "serve"]
     }
   }
 }
